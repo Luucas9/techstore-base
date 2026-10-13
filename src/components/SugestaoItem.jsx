@@ -1,6 +1,8 @@
-import { formatarPreco } from '../utils/formatarPreco'
+import { formatarPreco, normalizarPreco } from '../utils/formatarPreco'
 
 export default function SugestaoItem({ produto, onAdicionar }) {
+  const precoValido = normalizarPreco(produto.price) !== null
+
   return (
     <div className="sugestao">
       <div className="sugestao-imagem-moldura">
@@ -10,8 +12,8 @@ export default function SugestaoItem({ produto, onAdicionar }) {
         <p className="sugestao-titulo">{produto.title}</p>
         <p className="preco preco-pequeno">{formatarPreco(produto.price)}</p>
       </div>
-      <button className="botao botao-pequeno" onClick={() => onAdicionar(produto)}>
-        Comprar
+      <button className="botao botao-pequeno" onClick={() => onAdicionar(produto)} disabled={!precoValido}>
+        {precoValido ? 'Comprar' : 'Indisponível'}
       </button>
     </div>
   )

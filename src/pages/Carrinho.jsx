@@ -27,7 +27,11 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
       setMensagemCupom('Cupom aplicado!')
     } else {
       setCupomAplicado(null)
-      setMensagemCupom('Cupom inválido')
+      setMensagemCupom(
+        clienteAtual && Number(clienteAtual.pedidosAnteriores) > 0
+          ? 'Cupom válido apenas para clientes sem pedidos anteriores.'
+          : 'Cupom inválido'
+      )
     }
   }
 
@@ -58,7 +62,7 @@ export default function Carrinho({ carrinho, produtos, clienteAtual, onAdicionar
               </div>
               <div className="item-info">
                 <p className="item-titulo">{item.produto.title}</p>
-                <p className="item-preco">R$ {item.produto.price}</p>
+                <p className="item-preco">{formatarPreco(item.produto.price)}</p>
               </div>
               <span className="item-quantidade">{item.quantidade} un.</span>
               <button className="botao-texto" onClick={() => onRemover(item.produto.id)}>

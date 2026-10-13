@@ -7,8 +7,10 @@ import Loja from './pages/Loja'
 import PaginaProduto from './pages/PaginaProduto'
 import Carrinho from './pages/Carrinho'
 import Estoque from './pages/Estoque'
+import PainelLojista from './pages/PainelLojista'
 import { buscarProdutos } from './services/produtos'
 import { buscarClientes } from './services/clientes'
+import { produtoTemPrecoValido } from './utils/carrinho'
 
 export default function App() {
   const [produtos, setProdutos] = useState([])
@@ -17,6 +19,7 @@ export default function App() {
   const [carrinho, setCarrinho] = useState([])
   const [clientes, setClientes] = useState([])
   const [clienteAtualId, setClienteAtualId] = useState(null)
+  const [listaEsperas, setListaEsperas] = useState([])
 
   useEffect(() => {
     buscarProdutos()
@@ -26,19 +29,56 @@ export default function App() {
 
     buscarClientes().then((dados) => {
       setClientes(dados)
-      if (dados.length > 0) setClienteAtualId(dados[0].id)
+
+      const clienteNovo = dados.find((cliente) => Number(cliente.pedidosAnteriores) === 0)
+      if (dados.length > 0) {
+        setClienteAtualId(clienteNovo?.id ?? dados[0].id)
+      }
     })
   }, [])
 
   function adicionarAoCarrinho(produto) {
-    setCarrinho(carrinho.concat(produto))
+    if (!produto || produto.estoque === 0 || !produtoTemPrecoValido(produto)) {
+      return
+    }
+
+    setCarrinho((atual) => atual.concat(produto))
+  }
+
+  function adicionarNaListaDeEspera(produtoId, nome, email) {
+    const nomeLimpo = nome.trim()
+    const emailLimpo = email.trim()
+
+    if (!produtoId || !nomeLimpo || !emailLimpo) {
+      return
+    }
+
+    setListaEsperas((atual) => {
+      const jaExiste = atual.some(
+        (item) => item.produtoId === produtoId && item.email.toLowerCase() === emailLimpo.toLowerCase()
+      )
+
+      if (jaExiste) {
+        return atual
+      }
+
+      return [
+        ...atual,
+        {
+          id: Date.now() + Math.random(),
+          produtoId,
+          nome: nomeLimpo,
+          email: emailLimpo,
+        },
+      ]
+    })
   }
 
   function removerUmaUnidade(produtoId) {
     // Remove só a primeira unidade encontrada do produto
     let removido = false
-    setCarrinho(
-      carrinho.filter((produto) => {
+    setCarrinho((atual) =>
+      atual.filter((produto) => {
         if (!removido && produto.id === produtoId) {
           removido = true
           return false
@@ -67,7 +107,13 @@ export default function App() {
             />
             <Route
               path="/produto/:id"
-              element={<PaginaProduto produtos={produtos} onAdicionar={adicionarAoCarrinho} />}
+              element={
+                <PaginaProduto
+                  produtos={produtos}
+                  onAdicionar={adicionarAoCarrinho}
+                  onAvisar={adicionarNaListaDeEspera}
+                />
+              }
             />
             <Route
               path="/carrinho"
@@ -81,7 +127,11 @@ export default function App() {
                 />
               }
             />
-            <Route path="/estoque" element={<Estoque produtos={produtos} />} />
+            <Route path="/estoque" element={<Estoque produtos={produtos} listaEsperas={listaEsperas} />} />
+            <Route
+              path="/painel"
+              element={<PainelLojista produtos={produtos} listaEsperas={listaEsperas} />}
+            />
           </Routes>
         )}
       </main>
